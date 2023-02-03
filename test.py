@@ -7,37 +7,11 @@ from antlr4 import *
 from antlr4.tree.Trees import Trees
 from antlr.languageLexer import languageLexer  # This is the lexer 
 from antlr.language import language   # This is the parser
-from antlr.languageVisitor import languageVisitor  # This is the visitor
 from nltk import Tree
 from nltk.draw.tree import TreeView
 
-
-class MyVisitor(languageVisitor):
-    def visitNumberExpr(self, ctx):
-        value = ctx.getText()
-        return int(value)
-
-    def visitParenExpr(self, ctx):
-        return self.visit(ctx.expr())
-
-    def visitInfixExpr(self, ctx):
-        l = self.visit(ctx.left)
-        r = self.visit(ctx.right)
-
-        op = ctx.op.text
-        operation =  {
-        '+': lambda: l + r,
-        '-': lambda: l - r,
-        '*': lambda: l * r,
-        '/': lambda: l / r,
-        }
-        return operation.get(op, lambda: None)()
-
-    def visitWithinExpr(self, ctx):
-        print("Enter Within")
-
-    def visitHelloExpr(self, ctx):
-        return ("hi")
+# Our custom visitor
+from ceVisitor import ceVisitor
 
 
 def pretty_print(treestring):
@@ -154,11 +128,15 @@ def parse_query(filepath="example.json"):
 
     pretty_print(printtree)
 
-
     # evaluator
-    visitor = MyVisitor()
-    output = visitor.visit(tree)
-    print(output)
+    visitor = ceVisitor()
+
+    test_input = [(i, 0) for i in range(0, 20)]
+    # Now, we run our evaluation.
+    for val in test_input:
+        visitor.addEvent(val)
+        output = visitor.visit(tree)
+        print(output)
 
 
 

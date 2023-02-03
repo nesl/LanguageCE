@@ -39,6 +39,11 @@ class languageVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by language#operatorOptions.
+    def visitOperatorOptions(self, ctx:language.OperatorOptionsContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by language#bandInterval.
     def visitBandInterval(self, ctx:language.BandIntervalContext):
         return self.visitChildren(ctx)

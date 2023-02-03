@@ -62,6 +62,15 @@ class languageListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by language#operatorOptions.
+    def enterOperatorOptions(self, ctx:language.OperatorOptionsContext):
+        pass
+
+    # Exit a parse tree produced by language#operatorOptions.
+    def exitOperatorOptions(self, ctx:language.OperatorOptionsContext):
+        pass
+
+
     # Enter a parse tree produced by language#bandInterval.
     def enterBandInterval(self, ctx:language.BandIntervalContext):
         pass

@@ -19,7 +19,7 @@ expr:
  */
 
 complexEvent
-    : NotOperator? atomicEvent OPERATOR upperBoundInterval atomicEvent
+    : NotOperator? atomicEvent OPERATOR operatorOptions atomicEvent
     ;
 
 
@@ -37,6 +37,8 @@ spatialEvent
     ;  
 
 
+operatorOptions
+    : bandInterval | upperBoundInterval ;
 
 bandInterval
   	: LBRACK intervalParameter ( COLON | COMMA ) intervalParameter RBRACK ;
