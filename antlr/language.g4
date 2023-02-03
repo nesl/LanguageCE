@@ -1,0 +1,80 @@
+parser grammar language;
+
+options {
+	tokenVocab = languageLexer ;
+}
+
+/*
+ *   Parser Rules
+ */
+
+expr:
+    complexEvent ;
+
+/* complexEvent
+ *   : NotOperator? left=atomicEvent op=OPERATOR right=complexEvent #defaultExpr
+ *   | LPAREN complexEvent RPAREN #ParentExpr
+ *   | atom = atomicEvent  # atomicExpr
+ *   ;
+ */
+
+complexEvent
+    : NotOperator? atomicEvent OPERATOR upperBoundInterval atomicEvent
+    ;
+
+
+atomicEvent
+    : NotOperator? entityConstraint
+    | NotOperator? spatialEvent ;
+
+
+entityConstraint
+    : entityProperty relationOperator IntegerLiteral;
+
+spatialEvent
+    :  OverlapOperator LPAREN entity COMMA entity RPAREN #OverlapExpr
+    |  WithinOperator upperBoundInterval LPAREN entity COMMA entity RPAREN #WithinExpr
+    ;  
+
+
+
+bandInterval
+  	: LBRACK intervalParameter ( COLON | COMMA ) intervalParameter RBRACK ;
+
+upperBoundInterval
+    : LBRACK intervalParameter RBRACK ;
+
+
+intervalParameter:
+    timeIntervalParameter
+    | spaceIntervalParameter ;
+
+timeIntervalParameter
+	: IntegerLiteral ( timeunit )? 
+	| Identifier ( timeunit )? 
+  | Infinity  ; 
+
+
+spaceIntervalParameter
+    : IntegerLiteral ( spaceunit )? ;
+
+
+timeunit
+      : SEC | MSEC | USEC | NSEC ;
+
+spaceunit
+    : MILES | KILOMETERS;
+
+
+relationOperator
+    : EqualOperator | NotEqualOperator | GreaterOrEqualOperator | LesserOrEqualOperator | GreaterOperator | LesserOperator ;
+
+
+entityProperty
+    : entity DOT propertyOptions ;
+
+entity
+    : VAR_START STRING;
+
+propertyOptions
+    : EntityType | EntityLocation | GroupMemberDistances | GroupPositions | propertyOptions DOT propertyOptions ;

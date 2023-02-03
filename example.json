@@ -1,0 +1,29 @@
+{
+    "entities": {
+        "objects": {
+            "rec_vehicle" : {
+                "type": "rec_vehicle"
+            }
+        },
+        "locations": {
+            "bridge_watchbox1" : {
+                "name":"bridge_watchbox1",
+                "file":"labels.json"
+            },
+            "bridge_watchbox2" : {
+                "name":"bridge_watchbox2",
+                "file":"labels.json"
+            }
+        },
+        "groups": {
+            "rec_group" : {
+                "composition": "[rec_vehicle]",
+                "total": ">=2",
+                "distance": "[20, 50m]"
+            }
+        }
+    },
+
+    "event": "rec_group OVERLAP bridge_watchbox1 AND[1m] rec_group OVERLAP bridge_watchbox2"
+
+}

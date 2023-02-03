@@ -1,0 +1,12 @@
+
+
+
+The label software you are using is called labelme (https://github.com/wkentaro/labelme)
+
+example call: labelme example.png
+
+
+On Antlr:
+
+You may get an error on 'could not deserialize ATN'.  This means your python antlr version is different from the .jar you installed.
+For my setup to work, my .jar version was 4.10.1 and python-runtime was 4.9.3
