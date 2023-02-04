@@ -24,6 +24,6 @@
         }
     },
 
-    "event": "rec_group OVERLAP bridge_watchbox1 AND[1m] rec_group OVERLAP bridge_watchbox2"
+    "event": "overlap(@rec_group, @bridge_watchbox1) and[10m, 10m] overlap(@rec_group, @bridge_watchbox2)"
 
 }

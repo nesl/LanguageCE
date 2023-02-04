@@ -1,0 +1,26 @@
+{
+  "version": "5.1.1",
+  "flags": {},
+  "shapes": [
+    {
+      "label": "camera2_watchbox",
+      "points": [
+        [
+          138.99082568807344,
+          175.22935779816513
+        ],
+        [
+          369.26605504587155,
+          311.9266055045871
+        ]
+      ],
+      "group_id": null,
+      "shape_type": "rectangle",
+      "flags": {}
+    }
+  ],
+  "imagePath": "camera2.png",
+  "imageData": null,
+  "imageHeight": 600,
+  "imageWidth": 800
+}

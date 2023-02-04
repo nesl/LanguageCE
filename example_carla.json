@@ -1,0 +1,27 @@
+{
+    "entities": {
+        "objects": {
+            "pedestrian1" : {
+                "type": "pedestrian"
+            },
+            "pedestrian2" : {
+                "type": "pedestrian"
+            }
+        },
+        "locations": {
+            "camera1_watchbox" : {
+                "name":"camera1_watchbox",
+                "label_file":"camera1.json",
+                "image_file":"camera1.png"
+            },
+            "camera2_watchbox" : {
+                "name":"camera2_watchbox",
+                "label_file":"camera2.json",
+                "image_file":"camera2.png"
+            }
+        }
+    },
+
+    "event": "overlap(@pedestrian1, @camera1_watchbox) and[10m, 10m] overlap(@pedestrian2, @camera2_watchbox)"
+
+}
