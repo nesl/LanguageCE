@@ -13,6 +13,10 @@ from nltk.draw.tree import TreeView
 # Our custom visitor
 from ceVisitor import ceVisitor
 
+import numpy as np
+os.environ["OPENCV_LOG_LEVEL"]="SILENT"
+import cv2
+
 
 def pretty_print(treestring):
 
@@ -144,8 +148,11 @@ def match_event_to_camera(atomic_events, json_entities):
     matched_events = []
     
     # Iterate through each atomic event, and decide which camera we need to map to.
-    for atomic_event in atomic_events:
+    for atomic_event_pair in atomic_events:
         
+        current_node_id = atomic_event_pair[1]
+        atomic_event = atomic_event_pair[0]
+
         # Figure out what entities are part of this event
         # First, extract the entities
         event_entities = extract_entity_from_atomic_event(atomic_event)
@@ -165,13 +172,15 @@ def match_event_to_camera(atomic_events, json_entities):
                 location_data = json_entities["locations"][event_entity]
                 # Check if this is camera 1 or 2
                 if "camera1" in location_data["image_file"]:
-                    atomic_event_request.update({"camera_id" : "camera1"})
+                    atomic_event_request.update({"camera_id" : "1"})
                 else:
-                    atomic_event_request.update({"camera_id" : "camera2"})
+                    atomic_event_request.update({"camera_id" : "2"})
                 
                 # Then, get the bounding box for this location
                 bbox_data = get_location_bounding_box(event_entity, location_data["label_file"])
                 atomic_event_request.update({"location_bbox" : bbox_data})
+            
+            atomic_event_request["node_id"] = current_node_id
 
         matched_events.append(atomic_event_request)
                 
@@ -184,10 +193,20 @@ def sendToCamera(matched_event):
     # STILL UNDER IMPLEMENTATION
 
     # Check which camera this event should go to
-    if matched_event["camera_id"] == "camera1":
+    if matched_event["camera_id"] == "1":
         print("sent to camera 1")
-    elif matched_event["camera_id"] == "camera2":
+    elif matched_event["camera_id"] == "2":
         print("sent to camera 2")
+
+# Load in the JSON events
+def loadJSONInput(filepath="example_input.json"):
+
+    f = open(filepath)
+    data = json.load(f)
+    f.close()
+
+    input_data = data["input"]
+    return input_data
 
 
 
@@ -222,32 +241,95 @@ def parse_query(filepath="example_carla.json"):
 
     # We have to split up the query and determine how to transmit it to each camera
     visitor.visit(tree)
+
     visitor.track_atomic_events = False # Stop tracking atomic events
     matched_events = match_event_to_camera(visitor.atomic_events, entities)
+
 
     # Now, here we need to transmit these events to different cameras
     for matched_event in matched_events:
         sendToCamera(matched_event)
 
-    asdf
+    
+    # Load in our JSON input
+    input_data_index = 0
+    input_data = loadJSONInput()
+    
 
-    test_input1 = [(i, 1) for i in range(1, 20)]
-    test_input2 = [(i, 0) for i in range(21, 40)]
-    test_input3 = [(i, 1) for i in range(41, 55)]
-    test_input4 = [(i, 0) for i in range(56, 60)]
-    test_input = test_input1 + test_input2 + test_input3 + test_input4
+    # So, now we loop through time at a rate of some fps (involves waiting)
+    current_frame_index = 0
+    time_to_wait = 1/60
+    while current_frame_index < 3080:
 
-    # Output should be True for 11-21, 51-56, and False otherwise
+        # If current time is matched with the time of the input
+        current_input_data = input_data[input_data_index]
 
-    # Now, we run our evaluation.
-    for val in test_input:
 
-        print("\n\n next value:")
-        visitor.addEvent(val)
-        visitor.visit(tree)
-        # The root node id is 0
-        print(val)
-        print(visitor.state_dict[0])
+        current_input_data["time"] = current_input_data["time"]
+        if current_frame_index == current_input_data["time"]:
+            visitor.addEvent(current_input_data)
+            visitor.visit(tree)
+
+            # Only update our input data index while we are before the end of data
+            if input_data_index < len(input_data)-1:
+                input_data_index += 1
+        else:  # Otherwise, we update the time and run again
+            visitor.updateEventTime(current_frame_index)
+            visitor.visit(tree)
+
+        current_frame_index += 1
+
+        # Now, print each image
+        # IMPORTANT NOTE:
+        #  THERE IS A BUG between the camera and the metadata - timing misalignment
+        update_frame_index = current_frame_index + 243
+        camera1_filepath = "/home/brianw/Downloads/images1/" + str(update_frame_index).zfill(5) + ".jpg"
+        camera2_filepath = "/home/brianw/Downloads/images2/" + str(update_frame_index).zfill(5) + ".jpg"
+
+        try:
+            image = cv2.imread(camera1_filepath)
+            image = cv2.rectangle(image, (0,0), (400,600), (0, 0, 255), 2)
+
+            image_barrier = np.zeros((600, 20, 3), dtype = np.uint8)
+
+            image2 = cv2.imread(camera2_filepath)
+            image2 = cv2.rectangle(image2, (0,0), (400,600), (0, 0, 255), 2)
+
+
+
+            numpy_horizontal = np.concatenate((image2, image_barrier, image), axis=1)
+            # numpy_horizontal = np.hstack((numpy_horizontal, image))
+
+            # print(numpy_horizontal.shape)
+
+            cv2.imshow('Cameras (1, 2)', numpy_horizontal)
+            cv2.waitKey(1)
+            if visitor.updated_root:
+                print(visitor.state_dict[0])
+        except:
+
+            continue
+
+
+        # print(current_frame_index)
+
+        
+
+
+        
+
+
+
+
+    # # Now, we run our evaluation.
+    # for val in input_data:
+
+    #     print("\n\n next value:")
+    #     visitor.addEvent(val)
+    #     visitor.visit(tree)
+    #     # The root node id is 0
+    #     print(val)
+    #     print(visitor.state_dict[0])
 
 
 #  Some events to try out:

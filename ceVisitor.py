@@ -16,6 +16,7 @@ class ceVisitor(languageVisitor):
         #   became true.  By default, every list starts off as false.
         self.state_dict = {}
         self.node_mapping = {}  # Maps a node to a unique ID
+        self.camera_node_mapping = {}  # Maps a camera_id to a node_id
         self.current_unique_id = 0
 
         # Also, keep track of a dictionary that tracks all atomic events
@@ -26,10 +27,20 @@ class ceVisitor(languageVisitor):
         self.current_ts = 0
         self.current_data = 0
 
+        # If the complex event itself was updated
+        self.updated_root = False
+
     def addEvent(self, val):
 
-        self.current_ts = val[0]
-        self.current_data = val[1]
+        self.current_ts = val["time"]
+        self.current_data = val["results"][0][1][0]
+        self.current_camera = val["camera_id"]
+        self.updated_root = False
+
+    def updateEventTime(self, new_ts):
+        self.current_ts = new_ts
+        self.updated_root = False
+
 
     # Decide if we need to update the state dict based on previous results
     #  for a particular node.  Remember, we only update the state dict
@@ -40,6 +51,9 @@ class ceVisitor(languageVisitor):
         previous_state = self.state_dict[node_id][-1]
         if previous_state[1] != result:
             self.state_dict[node_id].append((self.current_ts, result))
+
+            if node_id == 0:
+                self.updated_root = True
 
 
     def check_and_map_node(self, ctx):
@@ -181,14 +195,20 @@ class ceVisitor(languageVisitor):
 
         # Now, evaluate whether this value is true or not.
         #  TO BE IMPLEMENTED
-        result = self.current_data > 0
+
+        # For now, assume that camera_id == node_id for evaluation
+        result = self.state_dict[node_id][-1][1] # Result is whatever the previous result is
+        if self.current_data == "True" and int(self.current_camera) == node_id:
+            result = True
+        elif self.current_data == "False" and int(self.current_camera) == node_id:
+            result = False
 
         # Add result to the state dictionary
         self.updateStateDict(node_id, result)
         # print(self.state_dict[node_id])
 
         if self.track_atomic_events:
-            self.atomic_events.append(ctx.getText())
+            self.atomic_events.append((ctx.getText(), node_id))
 
 
     def visitWithinExpr(self, ctx):
