@@ -313,14 +313,7 @@ def parse_query(filepath="example_carla.json"):
 
         # print(current_frame_index)
 
-        
-
-
-        
-
-
-
-
+    
     # # Now, we run our evaluation.
     # for val in input_data:
 
@@ -331,9 +324,34 @@ def parse_query(filepath="example_carla.json"):
     #     print(val)
     #     print(visitor.state_dict[0])
 
+from customfsm1 import and_fsm
+
+# light_switch = fsm1()
+# light_switch.on_message('turn on')
+# light_switch.on_message('turn off')
+# light_switch.on_message('break')
+# print(light_switch.get_state())
+
+# What if our logic is more like:
+#  a nested FSM, where we can specify:
+#  ce1 = (se1 and se2)
+#  ce2 = (ce1 until se3)
+se1 = {"id":"1"}
+se2 = {"id":"2"}
+
+# You should try to capture entities and spatial events
+ce1 = and_fsm(se1, se2)
+ce1.evaluate()
+
+# Should be able to do something like 
+se1 = {"id":"3"}
+ce1.evaluate()
+
+
+
 
 #  Some events to try out:
 # "within[1KM](@rec_vehicle , @bridge1_watchbox)"
 # "@rec_vehicle . type == 5"
 # overlap(@rec_group, @bridge_watchbox1) and[10m, 10m] overlap(@rec_group, @bridge_watchbox2)
-parse_query()
+# parse_query()

@@ -10,3 +10,8 @@ On Antlr:
 
 You may get an error on 'could not deserialize ATN'.  This means your python antlr version is different from the .jar you installed.
 For my setup to work, my .jar version was 4.10.1 and python-runtime was 4.9.3
+
+
+https://pypi.org/project/fsmdot/
+    Make sure you follow the instructions for installation
+    Some error may show up: https://stackoverflow.com/questions/15661384/python-does-not-see-pygraphviz
