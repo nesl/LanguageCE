@@ -42,10 +42,22 @@ def name_of_global_obj(xx):
     return [objname for objname, oid in globals().items()
             if id(oid)==id(xx)][0]
 
-    return 
+
+
+# This is returned by every operation
+#   such as 'hashall, enters, etc'
+class spatial_event:
+    def __init__(self, state="false"):
+        print("initialized event")
+        self.state = state
+
+    def get_state(self):
+        return self.state
+
+    def change_state(self, state):
+        self.state = state
 
 # This is a general parser for messages
-class 
 
 #  This is the FSM for an "AND" function
 class and_fsm(FiniteStateMachine):
@@ -78,11 +90,20 @@ class and_fsm(FiniteStateMachine):
     # # Handle incoming events.
     def evaluate(self):
 
+        print(self.get_state())
+        print(self.event1.get_state())
+
         # This is how we transition into different states
-        if self.get_state() == "false" and event1.get_state() == "true":
-            print("transitioned")
 
+        # We are transitioning to event1 being true
+        if self.get_state() == "false" and self.event1.get_state() == "true":
+            self.transition(to="event1", event="event1")
+        # We are transitioning to event2 being true
+        elif self.get_state() == "false" and self.event2.get_state() == "true":
+            self.transition(to="event2", event="event2")
+        # We are transitioning to both events being true (AND)
 
+        
         # if message == 'turn on':
         #     self.transition(to = 'se1 and se2', event = message)
         #     print("turn on")

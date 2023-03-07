@@ -324,7 +324,7 @@ def parse_query(filepath="example_carla.json"):
     #     print(val)
     #     print(visitor.state_dict[0])
 
-from customfsm1 import and_fsm
+from customfsm1 import and_fsm, spatial_event
 
 # light_switch = fsm1()
 # light_switch.on_message('turn on')
@@ -336,15 +336,15 @@ from customfsm1 import and_fsm
 #  a nested FSM, where we can specify:
 #  ce1 = (se1 and se2)
 #  ce2 = (ce1 until se3)
-se1 = {"id":"1"}
-se2 = {"id":"2"}
+se1 = spatial_event()
+se2 = spatial_event()
 
 # You should try to capture entities and spatial events
 ce1 = and_fsm(se1, se2)
 ce1.evaluate()
 
 # Should be able to do something like 
-se1 = {"id":"3"}
+se1.change_state("true")
 ce1.evaluate()
 
 
