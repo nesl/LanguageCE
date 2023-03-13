@@ -9,18 +9,19 @@ options {
  */
 
 expr:
-    complexEvent ;
+    customEvent ;
 
-/* complexEvent
- *   : NotOperator? left=atomicEvent op=OPERATOR right=complexEvent #defaultExpr
- *   | LPAREN complexEvent RPAREN #ParentExpr
- *   | atom = atomicEvent  # atomicExpr
- *   ;
- */
 
-complexEvent
-    : NotOperator? atomicEvent OPERATOR operatorOptions atomicEvent
+customEvent
+    : STRING 
     ;
+
+/*  This is for EVENT EQUALITY_OPERATOR VALUE */
+constraintEvent
+    : 
+    ;
+
+
 
 
 atomicEvent
@@ -70,6 +71,8 @@ spaceunit
 
 relationOperator
     : EqualOperator | NotEqualOperator | GreaterOrEqualOperator | LesserOrEqualOperator | GreaterOperator | LesserOperator ;
+
+
 
 
 entityProperty

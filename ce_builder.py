@@ -6,9 +6,21 @@ from transitions import Machine
 from transitions.extensions import HierarchicalMachine
 from transitions.extensions import GraphMachine
 from transitions.extensions.factory import HierarchicalGraphMachine
+import json
+
+from antlr4 import *
+from antlr4.tree.Trees import Trees
+from antlr.languageLexer import languageLexer  # This is the lexer 
+from antlr.language import language   # This is the parser
+
 
 import os, sys, inspect, io
 from IPython.display import Image, display, display_png
+
+
+# Always recompile the ANTLR language
+# os.system("bash run_test.sh")
+
 
 def get_param_name(var):
     stack = traceback.extract_stack()
@@ -17,12 +29,117 @@ def get_param_name(var):
     return vars_name
 
 
+# This is the event class
+class spatialEvent:
+
+    set_of_logical_operators = [" and ", " or "]
+    set_of_equality_operators = [">=", "==", "<=", "<", ">"]
+
+    # This has to return a set of states (for this event)
+    #   as well as a function for updating those states.
+    # def parse_event_function(self, event_function):
+
+
+    # Get entities
+    def get_entities(self, event_function):
+
+        print(event_function)
+        entities = []
+        # Every entity will have a period following it.
+        for candidate in event_function.split(".")[:-1]:
+            entity = candidate.split(" ")[-1]
+            entities.append(entity)
+            
+        return entities
+
+    # set up a spatialevent
+    def __init__(self, event_name, event_function, complete_code_block):
+
+        # self.states = states
+        # self.transitions = transitions
+
+        self.event_name = event_name
+        self.event_function = event_function
+        self.modified_event_function = event_function
+
+        # We need to execute the code block, which will give us the variables we need.
+        exec(complete_code_block)
+
+        # Now, we have a parsing function which gives us a set of 
+        #  states that we can update
+        entities = self.get_entities(event_function)
+
+        self.objects = []
+        for i,entity_var_name in enumerate(entities):
+            exec("self.objects.append(" + entity_var_name + ")")
+            
+            self.modified_event_function = \
+                    self.modified_event_function.replace(entity_var_name+".", "self.objects[" + str(i) + "]"+".")
+
+    # Evaluate our states
+    def evaluate(self):
+        return eval(self.modified_event_function)
+
+
+    def update(self, data):
+        for x in self.objects:
+            x.update(data)
+        
+    
+
+
+#  This has to return a lambda function that we can evaluate over later
+def event_compile(param):
+
+    (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+    event_call_text = text
+    
+    event_name = text.split("event_compile")[1][1:-1]
+    event_call_line = line_number-1  # Index not starting from zero
+    
+    # So we find the event name, and figure out what the text was saying.
+    f = open("LanguageTest.ipynb", "r")
+    python_code = json.load(f)
+    f.close()
+
+    # Now we have to find the 'closest previous' instantiation of this event
+    complete_code_block = None
+    relevant_line = None
+    relevant_line_found = False
+    for cell in python_code["cells"]:
+
+        # First, check if this is the relevant cell or line
+        if len(cell["source"]) >= event_call_line and \
+                event_call_text in cell["source"][event_call_line]:
+            relevant_line_found = True
+
+        # Remember this code block - it will be useful later.
+        complete_code_block = ''.join(cell["source"][:event_call_line])
+
+        if relevant_line_found:
+            # Look in reverse from the point of this event being called.
+            for line in cell["source"][event_call_line-1::-1]:
+                # If the event name is found, remember this line
+                if event_name in line:
+                    relevant_line = line.strip()
+                    cutoff_index = relevant_line.find("=")+1
+                    relevant_line = relevant_line[cutoff_index:].strip()
+                    break
+        
+        if relevant_line:
+            break
+
+    # Upon getting the relevant line, we have to parse it.
+    #  There are a few common patterns -
+    #  function EQUALITY VALUE
+    #  function EQUALITY VALUE LOGICAL_VALUE function EQUALITY VALUE
+    return spatialEvent(event_name, relevant_line, complete_code_block)
 
 
 #  So, we have groups, objects, locations/watchboxes.
 #   Each of them have functions/relations with other entities
 #        which generate spatial events.
-class video_stream:
+class sensor_event_stream:
 
     # Set up a video stream.
     def __init__(self, id):
@@ -34,15 +151,25 @@ class watchbox:
     def __init__(self, video_stream, positions):
         self.video_stream = video_stream
         self.positions = positions
+        self.data = []
 
-class spatialEvent:
+    # Returns composition at a particular time
+    #  This looks backwards in data
+    def composition(self, at, model):
 
-    # set up a spatialevent
-    def __init__(self, states, transitions):
+        if self.data:
+            # Get the data at a timestamp
+            #  0 is -1, 1 is -2, etc.
+            composition_result = self.data[-at - 1]
+            return composition_result
 
-        self.states = states
-        self.transitions = transitions
+    # Updates some internal values
+    def update(self, data):
+        self.data.append(data)
+    
         
+
+
 
 
 # This is an object group where most of our relations come into play
