@@ -17,6 +17,8 @@ from antlr.language import language   # This is the parser
 import os, sys, inspect, io
 from IPython.display import Image, display, display_png
 
+import cv2
+
 
 # Always recompile the ANTLR language
 # os.system("bash run_test.sh")
@@ -108,8 +110,10 @@ def event_compile(param):
     relevant_line_found = False
     for cell in python_code["cells"]:
 
+        # print(cell["source"])
+        # print(len(cell["source"]))
         # First, check if this is the relevant cell or line
-        if len(cell["source"]) >= event_call_line and \
+        if len(cell["source"]) > event_call_line and \
                 event_call_text in cell["source"][event_call_line]:
             relevant_line_found = True
 
@@ -148,10 +152,11 @@ class sensor_event_stream:
 class watchbox:
 
     # Set up a watchbox
-    def __init__(self, video_stream, positions):
+    def __init__(self, video_stream, positions, id):
         self.video_stream = video_stream
         self.positions = positions
-        self.data = []
+        self.id = id
+        self.data = [0]
 
     # Returns composition at a particular time
     #  This looks backwards in data
@@ -165,7 +170,21 @@ class watchbox:
 
     # Updates some internal values
     def update(self, data):
-        self.data.append(data)
+        # First off, how many vehicles are there already?
+        previous_count = self.data[-1]
+        new_count = previous_count
+        # And does this update take away, or add a vehicle?
+        results = data[0]["results"]
+        if self.id == results[0][0][0]: # watchbox id matches
+            # print("Updating for watchbox ID" + str(self.id))
+            # print(self.data[-1])
+            # If we add or subtract
+            if results[0][1][0]:
+                new_count += 1
+            else:
+                new_count -= 1
+        
+            self.data.append(new_count)
     
         
 
