@@ -2,6 +2,7 @@
 
 import re
 import traceback
+import inspect
 from transitions import Machine
 from transitions.extensions import HierarchicalMachine
 from transitions.extensions import GraphMachine
@@ -29,6 +30,10 @@ def get_param_name(var):
     filename, lineno, function_name, code = stack[-3]
     vars_name = re.compile(r'\((.*?)\).*$').search(code).groups()[0]
     return vars_name
+
+
+
+
 
 
 # This is the event class
@@ -137,6 +142,9 @@ def event_compile(param):
     #  There are a few common patterns -
     #  function EQUALITY VALUE
     #  function EQUALITY VALUE LOGICAL_VALUE function EQUALITY VALUE
+    print(event_name)
+    print(relevant_line)
+    
     return spatialEvent(event_name, relevant_line, complete_code_block)
 
 
@@ -149,6 +157,14 @@ class sensor_event_stream:
     def __init__(self, id):
         self.id = id
 
+
+class watchboxResult:
+    
+    def __init__(self, size=0, speed=0, color='red'):
+        self.size = size
+        self.speed = speed
+        self.color = color
+        
 class watchbox:
 
     # Set up a watchbox
@@ -156,8 +172,8 @@ class watchbox:
         self.video_stream = video_stream
         self.positions = positions
         self.id = id
-        self.data = [0]
-
+        self.data = [watchboxResult()]
+        
     # Returns composition at a particular time
     #  This looks backwards in data
     def composition(self, at, model):
@@ -170,8 +186,12 @@ class watchbox:
 
     # Updates some internal values
     def update(self, data):
+        
+        # Remember - we are updating a list of dictionaries
+        
+        
         # First off, how many vehicles are there already?
-        previous_count = self.data[-1]
+        previous_count = self.data[-1].size
         new_count = previous_count
         # And does this update take away, or add a vehicle?
         results = data[0]["results"]
@@ -184,7 +204,7 @@ class watchbox:
             else:
                 new_count -= 1
         
-            self.data.append(new_count)
+            self.data.append(watchboxResult(size=new_count))
     
         
 
@@ -193,60 +213,60 @@ class watchbox:
 
 # This is an object group where most of our relations come into play
 #  All that these relations do is return a dict of data and functions.
-class obj_group:
+# class obj_group:
 
-    # Set up an object group with composition.
-    def __init__(self, composition):
-        self.composition = composition
+#     # Set up an object group with composition.
+#     def __init__(self, composition):
+#         self.composition = composition
 
-        # Get the variable name of the class instance.
-        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-        self.obj_group_name = text[:text.find('=')].strip()
+#         # Get the variable name of the class instance.
+#         (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+#         self.obj_group_name = text[:text.find('=')].strip()
 
 
 
-    # Check if an object approaches a watchbox
-    def approaches(self, watchbox, min_speed):
-        #### TO BE IMPLEMENTED ####
-        se = spatialEvent()
-        return se
+#     # Check if an object approaches a watchbox
+#     def approaches(self, watchbox, min_speed):
+#         #### TO BE IMPLEMENTED ####
+#         se = spatialEvent()
+#         return se
 
-    # Check if an object enters a watchbox
-    def enters(self, watchbox):
+#     # Check if an object enters a watchbox
+#     def enters(self, watchbox):
 
-        watchbox_name = get_param_name(watchbox)
+#         watchbox_name = get_param_name(watchbox)
         
-        state_prefix = self.obj_group_name
-        state_suffix = watchbox_name
+#         state_prefix = self.obj_group_name
+#         state_suffix = watchbox_name
 
-        # There are two transitions and states - enters and exits
-        states = [
-            state_prefix + '-present-' + state_suffix,
-            state_prefix + '-gone-' + state_suffix
-        ]
-        transitions = [
-            {"trigger": state_prefix + '-entered-' + state_suffix,
-                "source": state_prefix + '-gone-' + state_suffix,
-                "dest": state_prefix + '-present-' + state_suffix },
-            {"trigger": state_prefix + '-exited-' + state_suffix,
-                "source": state_prefix + '-present-' + state_suffix,
-                "dest": state_prefix + '-gone-' + state_suffix }
-        ]
+#         # There are two transitions and states - enters and exits
+#         states = [
+#             state_prefix + '-present-' + state_suffix,
+#             state_prefix + '-gone-' + state_suffix
+#         ]
+#         transitions = [
+#             {"trigger": state_prefix + '-entered-' + state_suffix,
+#                 "source": state_prefix + '-gone-' + state_suffix,
+#                 "dest": state_prefix + '-present-' + state_suffix },
+#             {"trigger": state_prefix + '-exited-' + state_suffix,
+#                 "source": state_prefix + '-present-' + state_suffix,
+#                 "dest": state_prefix + '-gone-' + state_suffix }
+#         ]
 
-        #  Construct a spatial event from this
-        return spatialEvent(states, transitions)
+#         #  Construct a spatial event from this
+#         return spatialEvent(states, transitions)
 
-    # Check if an object enters a watchbox
-    def exits(self, watchbox):
-        #### TO BE IMPLEMENTED ####
-        se = spatialEvent()
-        return se
+#     # Check if an object enters a watchbox
+#     def exits(self, watchbox):
+#         #### TO BE IMPLEMENTED ####
+#         se = spatialEvent()
+#         return se
 
-    # # This returns a constraint
-    # def create_subgroup(self, num_members):
-    #     new_composition = self.composition
-    #     new_obj_group = obj_group()
-    #     return se
+#     # # This returns a constraint
+#     # def create_subgroup(self, num_members):
+#     #     new_composition = self.composition
+#     #     new_obj_group = obj_group()
+#     #     return se
 
 
 #  There are also temporal events which are more general and don't fall under
@@ -266,27 +286,136 @@ class Model:
         print("Clearing state ...")
         return True
 
-# See pytransitions "passing data"
+class Event:
+    
+    def __init__(self, event_str):
+        self.event = event_str
+    
 class complexEvent:
 
     # Set up complex event
-    def __init__(self, states, transitions, event_name):
-        self.states = states
-        self.transitions = transitions
-        self.ce_name = event_name
+    def __init__(self):
+#         self.states = states
+#         self.transitions = transitions
+#         self.ce_name = event_name
+#         self.machine = None
+          
+        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+        event_call_text = text.split("=")[0]
+        self.event_name = event_call_text
         
-        self.machine = None
+        
+        self.watchboxes = {}
+        self.executable_functions = []  # This is a list of [func_name, function]
+        self.previous_eval_result = {}
+        self.current_index = 0
+        
+    # Add watchboxes
+    # def addWatchbox(self, **kwargs):
+    def addWatchbox(self, event_content):
+#         (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+#         event_call_text = text
+        
+#         # This is going to be the entire function call, so do some parsing
+#         current_func_name = inspect.stack()[0][3]
+#         # Filter out the function call
+#         event_content = event_call_text.split(current_func_name)[1]
+#         event_content = event_content[1:-1]
+        
+        # Now, initialize and remember this watchbox
+        # This is done by executing the event as a string and saving it to our internal object list
+        watchbox_name = event_content.split("=")[0].strip()
+        watchbox_name_str = watchbox_name
+        current_data = [watchbox_name]
+        exec(event_content)
+        exec("current_data.append(" + watchbox_name + ")")
+        self.watchboxes.update({current_data[0]:current_data[1]})
+
+        
+    # Iterate through every watchbox name, and replace it with the object reference
+    def replaceWatchboxCommands(self, event):
+        new_command = event
+        for wb in self.watchboxes.keys():
+            # If the watchbox name matches, replace the command with the string
+            if wb in new_command:
+                new_command = new_command.replace(wb, "self.watchboxes[\""+wb+"\"]")
+        return new_command
+
+    # Add sequence of events
+    def addEventSequence(self, events):
+        
+        # Also, get the event names
+        (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
+        event_names = text.split("[")[1].split("]")[0].split(",")
+        
+        
+        
+        
+        # Get each event
+        for i,event in enumerate(events):
+            event_name = event_names[i].strip()
+            # For every event, you must first replace it with our own local variables
+            function_to_execute = self.replaceWatchboxCommands(event.event)
+            self.executable_functions.append((event_name, function_to_execute))
+            # Initialize our evaluation results
+            self.previous_eval_result[event_name] = False
 
     # Add the compilation
     def compile(self):
+        print("TBD")
+          
+#         # Basically, we construct our machine from the states and transitions
+#         self.machine = HierarchicalMachine(model=self, states=self.states, \
+#                 transitions=self.transitions, initial='asleep')
 
-        # Basically, we construct our machine from the states and transitions
-        self.machine = HierarchicalMachine(model=self, states=self.states, \
-                transitions=self.transitions, initial='asleep')
-
-        # We need to add a transition for going from 'asleep' to our first state.
+#         # We need to add a transition for going from 'asleep' to our first state.
         
-
+    # Add update and evaluate
+    def update(self, data):
+        # print("\nhi")
+        # print(data)
+        for x in self.watchboxes.keys():
+            self.watchboxes[x].update(data)
+            # print(x)
+            # Now, print out every watchbox and its count
+            # print([y.size for y in self.watchboxes[x].data])
+        
+    def evaluate(self):
+        
+        change_of_state = False
+        results = []
+        
+        eval_results = []
+        #  This is only evaluating two functions - the previous one and the current one
+        for i in range(max(0,self.current_index-1), self.current_index+1):
+            # Otherwise, get the current function to execute
+            current_function_name = self.executable_functions[i][0]
+            current_function = self.executable_functions[i][1]
+            # print(current_function_name)
+            eval_result = eval(current_function)
+            eval_results.append(eval_result)
+            
+            if self.previous_eval_result[current_function_name] != eval_result:
+                change_of_state = True
+                results.append((current_function_name, eval_result))
+                self.previous_eval_result[current_function_name] = eval_result
+            
+                
+        # If the most recent event has occurred, move up our window
+        if eval_results[-1]:
+            self.current_index += 1
+            
+        # If the current index reaches the max, then the final event has occurred
+        if self.current_index >= len(self.executable_functions):
+            results.append((self.event_name, True))
+            
+        return change_of_state, results
+        
+        
+        
+        
+          
+          
     # Add the visualization
     def visualize(self):
 
