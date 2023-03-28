@@ -47,8 +47,6 @@ ev11d = Event( "bridgewatchbox1.composition(at=0, model='rec_vehicle').size==4 a
 # And finally we add these events together
 ce1.addEventSequence([ OR(ev11a, ev11a1), ev11b, GEN_PERMUTE(ev11c1, "size"), AND(ev11c2, ev11d)])
 
-print(GEN_PERMUTE(ev11c1, "size").event)
-
 
 
 # Create a VideoCapture object and read from input file
