@@ -1,5 +1,4 @@
-from ce_builder import sensor_event_stream, watchbox, spatialEvent, \
-    ce_and, ce_until, ce_follows, event_compile, complexEvent, Event
+from ce_builder import sensor_event_stream, watchbox, complexEvent, Event, OR, AND, GEN_PERMUTE
 import time
 import os
 import cv2
@@ -32,17 +31,24 @@ ce1.addWatchbox("bridgewatchbox3 = watchbox('camera3', positions=[1294,290,1881,
 # First, four vehicles approach the bridge from one side
 ev11a = Event("bridgewatchbox1.composition(at=0, model='rec_vehicle').size==4 and bridgewatchbox1.composition(at=1, model='rec_vehicle').size!=4")
 
+ev11a1 = Event("bridgewatchbox1.composition(at=0, model='rec_vehicle').size==4 and bridgewatchbox1.composition(at=1, model='rec_vehicle').size==5")
+
 # Next, we have two vehicles on either side of the bridge
 ev11b = Event( "bridgewatchbox1.composition(at=0, model='rec_vehicle').size==2 and bridgewatchbox3.composition(at=0, model='rec_vehicle').size==2" )
 
 # Then we have two vehicles exit watchbox 3
-ev11c1 = Event( "bridgewatchbox3.composition(at=1, model='rec_vehicle').size==2 and bridgewatchbox3.composition(at=0, model='rec_vehicle').size!=2" )
+ev11c1 = Event( "bridgewatchbox3.composition(at=1, model='rec_vehicle').size==2 and bridgewatchbox3.composition(at=0, model='rec_vehicle').size==0" )
 
 # And then two vehicles show up in watchbox 1
 ev11c2 = Event( "bridgewatchbox1.composition(at=0, model='rec_vehicle').size==4 and bridgewatchbox1.composition(at=1, model='rec_vehicle').size!=4" )
 
+ev11d = Event( "bridgewatchbox1.composition(at=0, model='rec_vehicle').size==4 and bridgewatchbox1.composition(at=1, model='rec_vehicle').size==5" )
+
 # And finally we add these events together
-ce1.addEventSequence([ ev11a, ev11b, ev11c1, ev11c2 ])
+ce1.addEventSequence([ OR(ev11a, ev11a1), ev11b, GEN_PERMUTE(ev11c1, "size"), AND(ev11c2, ev11d)])
+
+print(GEN_PERMUTE(ev11c1, "size").event)
+
 
 
 # Create a VideoCapture object and read from input file
@@ -93,12 +99,18 @@ while(cap.isOpened()):
         if incoming_data:
             #### RUN OUR EVALUATION ON THE EVENT ANYTIME WE GET NEW DATA
             ce1.update(incoming_data)
-
-            event_occurred, results = ce1.evaluate()
-            if event_occurred:
+            result, change_of_state, old_results = ce1.evaluate()
+            
+            if change_of_state:
+                print()
+                print(old_results)
+                print(result)
+            
+#             event_occurred, results = ce1.evaluate()
+#             if event_occurred:
                 
-                for result in results:
-                    print("Event %s has changed to %s at frame %d" %(result[0], str(result[1]), frame_index))
+#                 for result in results:
+#                     print("Event %s has changed to %s at frame %d" %(result[0], str(result[1]), frame_index))
           
     # Press Q on keyboard to exit
         if cv2.waitKey(25) & 0xFF == ord('q'):
