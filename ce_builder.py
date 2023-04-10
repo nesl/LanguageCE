@@ -3,10 +3,7 @@
 import re
 import traceback
 import inspect
-from transitions import Machine
-from transitions.extensions import HierarchicalMachine
-from transitions.extensions import GraphMachine
-from transitions.extensions.factory import HierarchicalGraphMachine
+import asyncio
 import json
 import itertools
 
@@ -566,7 +563,8 @@ class complexEvent:
         (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
         event_names = text.split("[")[1].split("]")[0].split(",")
         event_names = self.connectOperatorEvents(event_names)
-        
+
+        event_list = []
         
         # Get each event
         for i,event in enumerate(events):
@@ -583,6 +581,7 @@ class complexEvent:
                 # For every event, you must first replace it with our own local variables
                 current_function = self.replaceWatchboxCommands(event.event[event_index])
                 current_name = event_name_split[event_index]
+                event_list.append(current_name)
                 functions_to_execute.append([current_name, current_function])
                 # Parse the function, and determine how much 'history' each object needs to 
                 #  remember, and update the max history for that watchbox
@@ -611,7 +610,7 @@ class complexEvent:
             eval_initial_results.append([current_eval_functions, current_eval_results, current_operator, False])
         # Initialize our visualization
         # self.visualize(eval_initial_results)
-            
+        return event_list
         
 
     # Add the compilation
@@ -680,6 +679,8 @@ class complexEvent:
                         self.previous_eval_result[current_function_name][0] = eval_result
                         self.previous_eval_result[current_function_name][1]+=1
                         old_results.append((current_function_name, eval_result))
+                        
+
                     
                 # Now, go back to the current function in the sequence (involving operators)
                 #  Do the statements align with the operators?
