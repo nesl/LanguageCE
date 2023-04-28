@@ -62,9 +62,9 @@ This basically says 'for this particular watchbox named bridgewatchbox1, we are 
 
 We can also chain atomic events together, expressing a sequence of them like a finite state machine.
 ```
-ce_name.addEventSequence([ event1, event2, etc...  ])
+ce_name.addEventSequence([ event1, event2, etc...  ], no_enforce_sequence=Y)
 ```
-where event1, event2 are all referring to Event() objects.  
+where event1, event2 are all referring to Event() objects.  The no_enforce_sequence parameter will either enforce strict ordering (e.g. event1 must occur, then event2, etc), or ignore any ordering requirements.  Set to True if you are not enforcing any ordering, and False otherwise.
 
 ### More flexible complex events
 
@@ -77,6 +77,10 @@ This means that as long as any of these events become true, we can move onto the
 AND(event1, event2, etc)
 ```
 This means that as long as all of these events become true, we can move onto the next item in our sequence.
+```
+WITHIN(event1, event2, time_constraint)
+```
+This means event2 must occur within some period of time that event1 occurs. This period of time is given by time_constraint.  Currently time_constraint is measured as frames in a video (e.g. time_constraint = 5400 means that event1 must occur within 3 minutes of event2)
 ```
 GEN_PERMUTE(event1, "ATTRIBUTE")
 ```
@@ -123,7 +127,5 @@ First, check the 'requirements.txt'.  Use it to install the necessary packages.
 
 ### Execution
 
-Next, just run the python script 'test.py'.  This should do two things:
-- Open an run a video file as specified in the program
-- Express the language and execute the logic over detected results from the video file.
+TBD - need to create a sample AE generator.
 

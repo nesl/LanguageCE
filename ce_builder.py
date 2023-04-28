@@ -3,14 +3,17 @@
 import re
 import traceback
 import inspect
-import asyncio
+from transitions import Machine
+from transitions.extensions import HierarchicalMachine
+from transitions.extensions import GraphMachine
+from transitions.extensions.factory import HierarchicalGraphMachine
 import json
 import itertools
 
-from antlr4 import *
-from antlr4.tree.Trees import Trees
-from antlr.languageLexer import languageLexer  # This is the lexer 
-from antlr.language import language   # This is the parser
+# from antlr4 import *
+# from antlr4.tree.Trees import Trees
+# from antlr.languageLexer import languageLexer  # This is the lexer 
+# from antlr.language import language   # This is the parser
 
 
 import os, sys, inspect, io
@@ -30,120 +33,6 @@ def get_param_name(var):
     filename, lineno, function_name, code = stack[-3]
     vars_name = re.compile(r'\((.*?)\).*$').search(code).groups()[0]
     return vars_name
-
-
-
-# This is the event class
-# class spatialEvent:
-
-#     set_of_logical_operators = [" and ", " or "]
-#     set_of_equality_operators = [">=", "==", "<=", "<", ">"]
-
-#     # This has to return a set of states (for this event)
-#     #   as well as a function for updating those states.
-#     # def parse_event_function(self, event_function):
-
-
-#     # Get entities
-#     def get_entities(self, event_function):
-
-#         print(event_function)
-#         entities = []
-#         # Every entity will have a period following it.
-#         for candidate in event_function.split(".")[:-1]:
-#             entity = candidate.split(" ")[-1]
-#             entities.append(entity)
-            
-#         return entities
-
-#     # set up a spatialevent
-#     def __init__(self, event_name, event_function, complete_code_block):
-
-#         # self.states = states
-#         # self.transitions = transitions
-
-#         self.event_name = event_name
-#         self.event_function = event_function
-#         self.modified_event_function = event_function
-
-#         # We need to execute the code block, which will give us the variables we need.
-#         exec(complete_code_block)
-
-#         # Now, we have a parsing function which gives us a set of 
-#         #  states that we can update
-#         entities = self.get_entities(event_function)
-
-#         self.objects = []
-#         for i,entity_var_name in enumerate(entities):
-#             exec("self.objects.append(" + entity_var_name + ")")
-            
-#             self.modified_event_function = \
-#                     self.modified_event_function.replace(entity_var_name+".", "self.objects[" + str(i) + "]"+".")
-
-#     # Evaluate our states
-#     def evaluate(self):
-#         return eval(self.modified_event_function)
-
-
-#     def update(self, data):
-#         for x in self.objects:
-#             x.update(data)
-        
-    
-
-
-#  This has to return a lambda function that we can evaluate over later
-# def event_compile(param):
-
-#     (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-#     event_call_text = text
-    
-#     event_name = text.split("event_compile")[1][1:-1]
-#     event_call_line = line_number-1  # Index not starting from zero
-    
-#     # So we find the event name, and figure out what the text was saying.
-#     f = open("LanguageTest.ipynb", "r")
-#     python_code = json.load(f)
-#     f.close()
-
-#     # Now we have to find the 'closest previous' instantiation of this event
-#     complete_code_block = None
-#     relevant_line = None
-#     relevant_line_found = False
-#     for cell in python_code["cells"]:
-
-#         # print(cell["source"])
-#         # print(len(cell["source"]))
-#         # First, check if this is the relevant cell or line
-#         if len(cell["source"]) > event_call_line and \
-#                 event_call_text in cell["source"][event_call_line]:
-#             relevant_line_found = True
-
-#         # Remember this code block - it will be useful later.
-#         complete_code_block = ''.join(cell["source"][:event_call_line])
-
-#         if relevant_line_found:
-#             # Look in reverse from the point of this event being called.
-#             for line in cell["source"][event_call_line-1::-1]:
-#                 # If the event name is found, remember this line
-#                 if event_name in line:
-#                     relevant_line = line.strip()
-#                     cutoff_index = relevant_line.find("=")+1
-#                     relevant_line = relevant_line[cutoff_index:].strip()
-#                     break
-        
-#         if relevant_line:
-#             break
-
-#     # Upon getting the relevant line, we have to parse it.
-#     #  There are a few common patterns -
-#     #  function EQUALITY VALUE
-#     #  function EQUALITY VALUE LOGICAL_VALUE function EQUALITY VALUE
-#     print(event_name)
-#     print(relevant_line)
-    
-#     return spatialEvent(event_name, relevant_line, complete_code_block)
-
 
 #  So, we have groups, objects, locations/watchboxes.
 #   Each of them have functions/relations with other entities
@@ -165,12 +54,12 @@ class watchboxResult:
 class watchbox:
 
     # Set up a watchbox
-    def __init__(self, video_stream, positions, id):
-        self.video_stream = video_stream
+    def __init__(self, camera_id, positions, watchbox_id):
+        self.camera_id = int(camera_id)
         self.positions = positions
-        self.id = id
+        self.watchbox_id = watchbox_id
         self.data = [watchboxResult()]
-        self.max_history = 0
+        self.max_history = 1000
         
     # update the max history
     def updateMaxHistory(self, history_len):
@@ -184,7 +73,13 @@ class watchbox:
         if self.data:
             # Get the data at a timestamp
             #  0 is -1, 1 is -2, etc.
+            
+            # for x in self.data:
+            #     print(x.size)
+
             composition_result = self.data[-at - 1]
+            # print("data for cam " + str(self.camera_id) + " and id " + str(self.watchbox_id))
+            # print(composition_result)
             return composition_result
         
     
@@ -198,91 +93,35 @@ class watchbox:
         # First off, how many vehicles are there already?
         previous_count = self.data[-1].size
         new_count = previous_count
+
+        # Get the camera id
+        incoming_cam_id = data[0]["camera_id"]
+
+
         # And does this update take away, or add a vehicle?
         results = data[0]["results"]
-        if self.id == results[0][0][0]: # watchbox id matches
-            # print("Updating for watchbox ID" + str(self.id))
-            # print(self.data[-1])
-            # If we add or subtract
-            if results[0][1][0]:
-                new_count += 1
-            else:
-                new_count -= 1
-        
-            # Append to our data
-            self.data.append(watchboxResult(size=new_count))
-            # Also make sure our max_history_length is being enforced
-            while len(self.data) > self.max_history+1: # +1 because current timestamp is included
-                self.data.pop(0)
+
+
+        # Get the relevant matching watchbox
+        for c_i, current_wb_id in enumerate(results[0][0]):
+            # Make sure the wb id matches and the camera id matches
+            if self.watchbox_id == current_wb_id and self.camera_id == int(incoming_cam_id): # watchbox id matches and same with the camera id
+
+                print("Updating for watchbox ID" + str(self.watchbox_id) + " and cam " + str(self.camera_id))
+                
+                # print(self.data[-1])
+                # If we add or subtract
+                if results[0][1][c_i]:
+                    new_count += 1
+                else:
+                    new_count -= 1
             
-    
-        
-
-
-
-
-# This is an object group where most of our relations come into play
-#  All that these relations do is return a dict of data and functions.
-# class obj_group:
-
-#     # Set up an object group with composition.
-#     def __init__(self, composition):
-#         self.composition = composition
-
-#         # Get the variable name of the class instance.
-#         (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
-#         self.obj_group_name = text[:text.find('=')].strip()
-
-
-
-#     # Check if an object approaches a watchbox
-#     def approaches(self, watchbox, min_speed):
-#         #### TO BE IMPLEMENTED ####
-#         se = spatialEvent()
-#         return se
-
-#     # Check if an object enters a watchbox
-#     def enters(self, watchbox):
-
-#         watchbox_name = get_param_name(watchbox)
-        
-#         state_prefix = self.obj_group_name
-#         state_suffix = watchbox_name
-
-#         # There are two transitions and states - enters and exits
-#         states = [
-#             state_prefix + '-present-' + state_suffix,
-#             state_prefix + '-gone-' + state_suffix
-#         ]
-#         transitions = [
-#             {"trigger": state_prefix + '-entered-' + state_suffix,
-#                 "source": state_prefix + '-gone-' + state_suffix,
-#                 "dest": state_prefix + '-present-' + state_suffix },
-#             {"trigger": state_prefix + '-exited-' + state_suffix,
-#                 "source": state_prefix + '-present-' + state_suffix,
-#                 "dest": state_prefix + '-gone-' + state_suffix }
-#         ]
-
-#         #  Construct a spatial event from this
-#         return spatialEvent(states, transitions)
-
-#     # Check if an object enters a watchbox
-#     def exits(self, watchbox):
-#         #### TO BE IMPLEMENTED ####
-#         se = spatialEvent()
-#         return se
-
-#     # # This returns a constraint
-#     # def create_subgroup(self, num_members):
-#     #     new_composition = self.composition
-#     #     new_obj_group = obj_group()
-#     #     return se
-
-
-#  There are also temporal events which are more general and don't fall under
-#   those relations. 
-#  The "ComplexEvent" class also has methods for compiling, visualizing,
-#    and executing.
+                # Append to our data
+                self.data.append(watchboxResult(size=new_count))
+                print("Current watchbox count is " + str(new_count))
+                # Also make sure our max_history_length is being enforced
+                while len(self.data) > self.max_history+1: # +1 because current timestamp is included
+                    self.data.pop(0)
 
 
 # So our CEs will need a few things:
@@ -301,10 +140,13 @@ class OR:
         # Basically needs to return the full string but and/or
         # output = ' or '.join(["("+x.event+")" for x in args])
         
-        output = [x.event[0] for x in args]
+        output = [x.event for x in args]
+        
+
         output.append("or")
         
         self.event = output
+
             
 class AND:
     def __init__(self, *args):
@@ -313,6 +155,26 @@ class AND:
         output = [x.event[0] for x in args]
         output.append("and")
         self.event = output
+        
+
+
+
+class WITHIN:
+    # Initializing a WITHIN statement is a bit tricky, as it refers to checking when
+    #  an event becomes true within a certain amount of time.
+    #  So it also requires an additional statement that checks if one time from one event is within another
+    def __init__(self, *args):
+        
+        # First, get the time parameter and ignore the rest
+        time_param = args[-1]
+        statements = args[:-1]
+        
+        # generate the statement to execute
+        output = [x.event[0] for x in statements]
+        output.append(["within", None, time_param])
+
+        self.event = output
+
         
         
 # So how should this function work?
@@ -450,10 +312,19 @@ class complexEvent:
         
         
         self.watchboxes = {}
+        self.config_watchboxes = {}
+        self.client_info = {}
         self.executable_functions = []  # This is a list of [func_name, function]
         # This stores the previous state of each event initially
         self.previous_eval_result = {}  
         self.current_index = 0
+
+        self.within_history = {}
+        
+        # Keep track of our json output
+        self.result_output = {"incoming":[], "events":[]}
+        self.result_dir = ""
+        
         
     # Add watchboxes
     # def addWatchbox(self, **kwargs):
@@ -479,16 +350,52 @@ class complexEvent:
         
     # Iterate through every watchbox name, and replace it with the object reference
     def replaceWatchboxCommands(self, event):
-        new_command = event
-        for wb in self.watchboxes.keys():
-            # If the watchbox name matches, replace the command with the string
-            if wb in new_command:
-                new_wb_object = "self.watchboxes[\""+wb+"\"]"
-                new_command = new_command.replace(wb, new_wb_object)
-        return new_command
+        
+        # print("wbreplace")
+        # print(event)
+        new_commands = []
+
+        # Iterate through every 'event'
+        #  ev could be an event string, or it could be a list of event strings
+        for ev in event:
+            
+            if type(ev) == str:
+                ev = [ev]
+
+            sub_new_commands = []
+
+            # Itereate through sub ev
+            for sub_ev in ev:
+                new_command = sub_ev
+
+                # print("---")
+                # print(new_command)
+
+                for wb in self.watchboxes.keys():
+                    # If the watchbox name matches, replace the command with the string
+                    if wb in new_command:
+                        new_wb_object = "self.watchboxes[\""+wb+"\"]"
+                        new_command = new_command.replace(wb, new_wb_object)
+                
+                # Append after making these changes
+                sub_new_commands.append(new_command)
+            
+            new_commands.append(sub_new_commands)
+
+        # print("\nnew command")
+        # print(new_commands)
+        
+        return new_commands
     
     # Figure out how much 'history' each object needs to recall
     def updateMaxHistory(self, function_to_execute):
+
+        print("here...")
+        
+
+        if type(function_to_execute) == list:
+            function_to_execute = function_to_execute[0][0]
+        
         
         # Get every watchbox involved, and their 'time' for looking back
         # Split by and/or
@@ -502,7 +409,7 @@ class complexEvent:
             name = x.split("[\"")[1].split("\"]")[0]
             history_len = int(x.split("at=")[1].split(",")[0])
             # Update the max history (checking of 'max' is done at the watchbox side)
-            self.watchboxes[name].updateMaxHistory(history_len)
+            # self.watchboxes[name].updateMaxHistory(history_len)
 
     # For a sequence of split event names, make sure to actually connect the OR/AND events back together
     #  e.g. given ["OR(ev11a", " ev11b)"] turn it into ["OR(ev11a, ev11b)"]
@@ -512,6 +419,7 @@ class complexEvent:
         start_buffer = False
         using_gen_permute = False
         skip_next_item = False
+        # print(split_sequence)
         for x in split_sequence:
             
             if "(" in x:
@@ -546,8 +454,11 @@ class complexEvent:
 
         return output
             
-    # Add sequence of events
+
     
+    
+    # Add sequence of events
+
     # This initializes self.executable_functions to a particular format:
     #  [ 
     #    (   [ eventname, event_logic ] , event_operator ) ...
@@ -556,8 +467,7 @@ class complexEvent:
     #  {
     #    eventname : [boolean state, number of times state became true]
     #  }
-    
-    def addEventSequence(self, events):
+    def addEventSequence(self, events, no_enforce_sequence=False):
         
         # Also, get the event names
         (filename,line_number,function_name,text)=traceback.extract_stack()[-2]
@@ -565,27 +475,38 @@ class complexEvent:
         event_names = self.connectOperatorEvents(event_names)
 
         event_list = []
+        # Do we enforce sequence constraints or no?
+        self.no_enforce_sequence = no_enforce_sequence
         
         # Get each event
         for i,event in enumerate(events):
+
+            # print("\n event name:")
+            # print(event_names[i])
             
             # Check if this event is either a list or a string.  If it's a string, it is a single event, and otherwise as a list it is a multi-event involving AND/OR
             # Firstly, split and see if there is a comma here
             event_name_split = [x.strip() for x in event_names[i].split(",")]
             
-            
             # If there are more than one events, then we actually have an operator involved.
             #  Otherwise, we just append the normal event and its name
             functions_to_execute = []
             for event_index in range(len(event_name_split)):
+            # for event_index in range(len(event.event)):
+
+                # print("\n split")
+                # print(event_name_split)
+                # print(event_name_split[event_index])
+
                 # For every event, you must first replace it with our own local variables
-                current_function = self.replaceWatchboxCommands(event.event[event_index])
+                current_function = self.replaceWatchboxCommands([event.event[event_index]])
                 current_name = event_name_split[event_index]
                 event_list.append(current_name)
+                self.within_history[current_name] = []
                 functions_to_execute.append([current_name, current_function])
                 # Parse the function, and determine how much 'history' each object needs to 
                 #  remember, and update the max history for that watchbox
-                self.updateMaxHistory(current_function)
+                # self.updateMaxHistory(current_function)
                 
                 # Initialize our evaluation results
                 self.previous_eval_result[current_name] = [False, 0]
@@ -594,23 +515,25 @@ class complexEvent:
             operator = ""
             if len(functions_to_execute)>1:
                 operator = event.event[-1]
+
             
             self.executable_functions.append((functions_to_execute, operator))
             
         # Initialize some results
-        eval_initial_results = []
-        for i in range(len(self.executable_functions)):
-            current_functions = self.executable_functions[i][0]
-            current_operator = self.executable_functions[i][1]
+        # eval_initial_results = []
+        # for i in range(len(self.executable_functions)):
+        #     current_functions = self.executable_functions[i][0]
+        #     current_operator = self.executable_functions[i][1]
             
-             # Now, evaluate each function
-            current_eval_results = [False for x in current_functions]
-            current_eval_functions = [x[0] for x in current_functions]
+        #      # Now, evaluate each function
+        #     current_eval_results = [False for x in current_functions]
+        #     current_eval_functions = [x[0] for x in current_functions]
 
-            eval_initial_results.append([current_eval_functions, current_eval_results, current_operator, False])
+        #     eval_initial_results.append([current_eval_functions, current_eval_results, current_operator, False])
         # Initialize our visualization
         # self.visualize(eval_initial_results)
         return event_list
+          
         
 
     # Add the compilation
@@ -625,21 +548,94 @@ class complexEvent:
         
     # Add update and evaluate
     def update(self, data):
-        # print("\nhi")
-        # print(data)
-        for x in self.watchboxes.keys():
-            self.watchboxes[x].update(data)
-            # print(x)
-            # Now, print out every watchbox and its count
-            # print([y.size for y in self.watchboxes[x].data])
         
-    def evaluate(self):
+        # Important note - sometimes, the update will involve results from two different timestamps
+        # Like this: [{'camera_id': '2', 'results': [[[1], [True], 19974], [[0], [True], 20021]]
+        #  We have to split it up appropriately.
+        for result in data[0]["results"]:
+
+            # Make sure we create a new result
+            update_data = [{'camera_id': data[0]['camera_id'], 'results': [result]}]
+
+            for x in self.watchboxes.keys():
+                self.watchboxes[x].update(update_data)
+                # print(x)
+                # Now, print out every watchbox and its count
+                # print([y.size for y in self.watchboxes[x].data])
+
+    # This works by taking in previous class states and their history from the CE class
+    def within(self, event_list, func_name, event_history, time_bound, time_index):
+  
+        # First, update our within history
+        # event_history is a list of (event_index, time_index) representing when an event
+        #  in event_list became true and at what time.
+        # Evaluate every item in the ce list.  If true, update the ce history
+        for ev_i, ce_item in enumerate(event_list):
+            eval_result = eval(event_list[ev_i])
+            print(event_list[ev_i])
+            if eval_result:
+                self.within_history[func_name].append((ev_i, float(time_index)))
+        print("within history")
+        print(self.within_history)
+
+        # Then, look through our event_history to see if or when the last event became true
+        all_events_occurred_on_time = [False for x in event_list[:-1]]
+        event_index = len(event_list)-1
+        last_event_time = -1
+        # Look backwards in the event history
+        print("looking at event_history")
+        print(event_history)
+        start_tracking = False
+        for ev in event_history[::-1]:
+            if ev[0] == len(event_list)-1: # THe last event in our within statement occurred
+                start_tracking = True
+                event_index -= 1
+                last_event_time = ev[1]
+                print("start tracking")
+            else:
+                if start_tracking: # If the last event occurred, 
+                    print("current_ev_index:" + str(event_index))
+                    print(ev)
+                    if ev[0] == event_index: # If event index matches current index
+                        if last_event_time - ev[1] < time_bound: #occurs within the time bound
+                            all_events_occurred_on_time[event_index] = True
+                            last_event_time = ev[1]
+                            event_index -= 1
+        print("Events occuring on time" + str(all_events_occurred_on_time))
+        within_occurred = all(all_events_occurred_on_time)
+
+        return within_occurred
+
+
+    # Get the actual function we need to evaluate
+    def get_func_to_evaluate(self, func_list, func_name, time_index):
+
+        output = ""
+        func_list = func_list[0] # Get rid of extra list
+        if len(func_list) == 1:
+            output = func_list[0]
+        else:  # If we have multiple things to check, then it's likely we have an operator here.
+            # Iterate through each function
+
+            # If this is a within, then create the appropriate function name
+            if func_list[-1][0] == "within":
+                params = [str(func_list[0:-1]), "\'" + func_name + "\'"]
+                params.extend(["self.within_history[\'"+ func_name +"\']", str(func_list[-1][2]), str(time_index)])
+
+                output = "self.within(" + ','.join(params) + ")"
+
+        return output
+
+
+    def evaluate(self, time_index):
         
         change_of_state = False
         results = []
         
         eval_results = []
         old_results = []
+        eval_indices_to_track = [self.current_index]
+
         # It is important to note how we are performing evaluation:
         #  Firstly, we obviously have to evaluate the 'current' state we are at in the FSM
         #  However, we must also evaluate certain previous states, as we wish to return an interval when they are true.
@@ -656,7 +652,7 @@ class complexEvent:
             current_eval_results = [False for x in current_functions]
             current_eval_functions = [x[0] for x in current_functions]
             set_eval_result = False
-            if i < self.current_index+1:
+            if i < self.current_index+1 or self.no_enforce_sequence:
                 for f_i, function in enumerate(current_functions):
 
                     current_function_name = function[0]
@@ -666,8 +662,19 @@ class complexEvent:
                     # if not self.previous_eval_result[current_function_name][0] and self.previous_eval_result[current_function_name][1] > 0:
                     #     continue
 
-                    # print(current_function_name)
-                    eval_result = eval(current_function)
+                    
+                    current_function = self.get_func_to_evaluate(current_function, current_function_name, time_index)
+                   
+                    # If evaluation ends up with an error, spit out the error and return false
+                    try:
+                        eval_result = eval(current_function)
+                        print("evaluating: " + current_function_name)
+                        print("result: " + str(eval_result))
+                    except Exception as e:
+                        print(traceback.format_exc())
+                        eval_result = False
+                        print("Error in evaluation - returning false and continuing...")
+
                     current_eval_results[f_i] = eval_result
                     # current_eval_results.append(eval_result)
                     # current_eval_functions.append(current_function_name)
@@ -679,8 +686,13 @@ class complexEvent:
                         self.previous_eval_result[current_function_name][0] = eval_result
                         self.previous_eval_result[current_function_name][1]+=1
                         old_results.append((current_function_name, eval_result))
-                        
 
+
+                        # If we are not enforcing any particular order, then the current index is the index of this result
+                        if self.no_enforce_sequence:
+                            eval_indices_to_track.append(i)
+
+                        
                     
                 # Now, go back to the current function in the sequence (involving operators)
                 #  Do the statements align with the operators?
@@ -696,11 +708,15 @@ class complexEvent:
             eval_results.append([current_eval_functions, current_eval_results, current_operator, set_eval_result])
                 
         # Get the current result
-        current_result = eval_results[self.current_index]
-                
-        # If the most recent event has occurred, move up our window
-        if eval_results[self.current_index][-1]:
-            self.current_index += 1
+        current_result = []
+        for eval_index in eval_indices_to_track:
+            if eval_index < len(eval_results):
+                current_result.append(eval_results[eval_index])
+                    
+                # If the most recent event has occurred, move up our window
+                if self.current_index < len(eval_results) and eval_results[self.current_index][-1]:
+                    self.current_index += 1
+        
             
         #  Output of eval_results looks like this:
         # [
@@ -720,8 +736,6 @@ class complexEvent:
 #         return change_of_state, results
 
         return current_result, change_of_state, old_results
-        
-        
         
         
           
