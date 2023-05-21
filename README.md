@@ -114,6 +114,10 @@ So we can create more complex event sequences using the previously mentioned ope
 ```
 ev_name.addEventSequence([ OR(event1, event2), GEN_PERMUTE(event3, "size"), AND(event4, event5)])
 ```
+
+```
+ce1.addEventSequence([ OR(event1, event2), WITHIN(event3, event4, 300), AND(event5, event6)])
+```
 So let's go through this example, as if our program was executing it:
 - First, we check if event1 or event2 occurs.  If either occurs, we can move onto the next event, which is GEN_PERMUTE().
 - We check if any of the possible cases leading to event3 happens - these possible cases are generated based on the 'size' attribute.  If any of those cases occurs, we can move onto the next statement, which is AND(event4, event5).
