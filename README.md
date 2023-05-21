@@ -103,7 +103,7 @@ where two vehicles arrive at the same time at the previous event, then one vehic
 
 This is why we have the GEN_PERMUTE() function - it generates all combinations for an attribute over time so all we have to do is express:
 ```
-bridgewatchbox1.composition(at=0, model='rec_vehicle').size==3 and
+ev1 = Event("bridgewatchbox1.composition(at=0, model='rec_vehicle').size==3") and
 bridgewatchbox1.composition(at=1, model='rec_vehicle').size==0
 ```
 and GEN_PERMUTE() will handle generating all the necessary statements.
