@@ -131,5 +131,32 @@ First, check the 'requirements.txt'.  Use it to install the necessary packages.
 
 ### Execution
 
+#### Running the ChatGPT examples:
+
+First, please change the value of the variable "openai.api_key" in chatgpt_frontend.py to your API key.
+```
+python chatgpt_frontend.py
+```
+
+You have several ways of communicating with ChatGPT via this file:
+- Selecting a predefined message based on a file under chatgpt_examples
+    The selected file is from the variable "file_of_interest", and you can use a number to select one of the json entries.  0 is the preamble, and 1+ is usually a query based on the preamble (e.g. create an event).  An example interaction is shown below.
+```
+Select a message option (0-N), or type it here:0
+ChatGPT: Yes, I am ready. How can I help you?
+Select a message option (0-N), or type it here:2
+```
+- Another way of communicating is just to type your query in the input.
+```
+Select a message option (0-N), or type it here:0
+ChatGPT: Yes, I am ready. How can I help you?
+Select a message option (0-N), or type it here:2
+```
+Select a message option (0-N), or type it here: what is the tallest building in the world?
+ChatGPT: As of 2021, the tallest building in the world is the Burj Khalifa, located in Dubai, United Arab Emirates. It stands at a height of 828 meters (2,716 feet) with 163 floors.
+```
+
+#### Todos:
+
 TBD - need to create a sample AE generator.
 

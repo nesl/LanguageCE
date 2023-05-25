@@ -3,3 +3,4 @@ label-studio-converter==0.0.48rc0
 label-studio-tools==0.0.1
 labelme==5.1.1
 nltk==3.6.7
+openai==0.27.7
