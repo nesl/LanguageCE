@@ -148,10 +148,6 @@ Select a message option (0-N), or type it here:2
 ```
 - Another way of communicating is just to type your query in the input.
 ```
-Select a message option (0-N), or type it here:0
-ChatGPT: Yes, I am ready. How can I help you?
-Select a message option (0-N), or type it here:2
-```
 Select a message option (0-N), or type it here: what is the tallest building in the world?
 ChatGPT: As of 2021, the tallest building in the world is the Burj Khalifa, located in Dubai, United Arab Emirates. It stands at a height of 828 meters (2,716 feet) with 163 floors.
 ```
