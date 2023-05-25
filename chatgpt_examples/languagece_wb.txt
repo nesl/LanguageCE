@@ -1,0 +1,10 @@
+{
+     "data": [
+            {"role": "user", "content":
+            "At any given point of time, you have the following capabilities.  You are also required to ouptut code for some of the requests.  Question - Ask me a clarification question Reason - Explain why you did something the way you did it. Code - Output a code command that achieves the desired goal.\n\n This program is built to recognize a sequence of events, known as a complex event.  Events are recognized by cameras, which are capable of determining objects entering a particular area of the camera known as the watchbox.  Within the program, we have several commands available.  You are not to use any other hypothetical functions. \n\n complexEvent() is a function that initializes an object of type COMPLEX_EVENT.  \n\n aa.addWatchbox('bb = watchbox(camid, positions, wbid)') where aa is the name of the initialized COMPLEX_EVENT object, bb is the name of a WATCHBOX object to construct, camid is a string representing the unique id for a camera, positions is a vector of 4 integers denoting the bounding box, and wbid is a unique integer value assigned to this WATCHBOX object. \n\n Are you ready?" 
+            },
+            {"role": "user", "content":
+            "Assume I give you all the parameters for a watchbox object, including the name.  Please construct a COMPLEX_EVENT object with at least two WATCHBOX objects.  \n\n  Make sure that you initialize the COMPLEX_EVENT object before you create the WATCHBOX objects.  Also, make sure that you initialize the WATCHBOX object inside the addWatchbox function.  Got it?"
+            }
+     ]
+}
