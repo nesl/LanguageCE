@@ -1,4 +1,4 @@
-from ce_builder import sensor_event_stream, watchbox, complexEvent, Event, OR, AND, GEN_PERMUTE, WITHIN
+from LanguageCE.ce_builder import sensor_event_stream, watchbox, complexEvent, Event, OR, AND, GEN_PERMUTE, WITHIN
 import time
 import os
 import cv2
@@ -246,14 +246,21 @@ def build_ce3():
     return ce3, ce_structure
 
 
+def test_ce():
+
+    ce_test = complexEvent()
+
+
+
+
 import argparse
 
 
 parser = argparse.ArgumentParser(description='Edge Processing Node')
-parser.add_argument('--ce', type=int, help='Determines which CE we want to capture')
-parser.add_argument('--server_port', type=int, help='Determines which CE we want to capture')
-parser.add_argument('--result_dir', type=str, help='this is where we will output our json')
-parser.add_argument('--debug_output', type=str, help='this is where we will output debug data')
+parser.add_argument('--ce', type=int, default=1, help='Determines which CE we want to capture')
+parser.add_argument('--server_port', default=6792, type=int, help='Determines which CE we want to capture')
+parser.add_argument('--result_dir', default="results", type=str, help='this is where we will output our json')
+# parser.add_argument('--debug_output', type=str, help='this is where we will output debug data')
 args = parser.parse_args()
 SERVER_ADDR = ("127.0.0.1", args.server_port)
 
@@ -308,7 +315,8 @@ if __name__=='__main__':
     
     
     # # Set up our server
-    server_listen_thread = threading.Thread(target=server_listen, args=(complexEventObj,ce_structure,))
+    server_listen_thread = threading.Thread(target=server_listen, \
+        args=(complexEventObj,ce_structure,))
     server_listen_thread.start()
 
 #     if incoming_data:
