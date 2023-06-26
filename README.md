@@ -25,10 +25,11 @@ Next, we have to set up our spatial detection features, such as watchboxes.  The
 ```
 ce_name.addWatchbox("XX = watchbox('YY', positions=[aa,bb,cc,dd], id=ZZ)")
 ```
-Here, XX is the name of our watchbox which can be referenced in later events.  YY is the camera stream name, although at this time it doesn't do anything.  The positions of aa,bb,cc,dd refer to the top left and bottom right coordinates of the watchbox in the image.  The id of ZZ is an integer number which corresponds to the events returned by the neural components (e.g. camera + YOLOv5 + some additional processing).  An example of these returned events is shown in complex_events.json:
+Here, XX is the name of our watchbox which can be referenced in later events.  YY is the camera stream name, although at this time it doesn't do anything.  The positions of aa,bb,cc,dd refer to the top left and bottom right coordinates of the watchbox in the image.  The id of ZZ is an integer number which corresponds to the detected object of interest given by YOLO.  An example of these returned events is shown in complex_events.json:
 ```
 {"camera_id": 3, "results": [[[0], [true], 1]], "time": 630}
 ```
+In this example, we capture an object of class 0 (which would've been the value of ZZ).
 As you can see, this entry in complex_events.json contains a camera_id which we currently don't use.  In addition, it has a 'results field', which refers to the following:
 ```
 "results": [[[watchbox_id], [event_occurred], object_track_id]]
