@@ -219,7 +219,34 @@ class NOT:
 
         # output.append("not")
         self.event = output
+
+class SET:
+    def __init__(self, *args):
         
+        # First, get the time parameter and ignore the rest
+        
+        # generate the statement to execute
+        output = [[x.event[0]] for x in args]
+        output.append(["set_untimed"])
+
+        self.event = output
+        self.event_name = [x.event_name for x in args]
+        print(self.event)
+        print(self.event_name)
+        # asdf
+
+class SEQUENCE:
+    def __init__(self, *args):
+        
+        # First, get the time parameter and ignore the rest
+        
+        # generate the statement to execute
+        output = [[x.event[0]] for x in args]
+        output.append(["sequence_untimed"])
+
+        self.event = output
+        self.event_name = [x.event_name for x in args]
+
 
 class SET_TIMED:
     # Initializing a WITHIN statement is a bit tricky, as it refers to checking when
@@ -609,9 +636,9 @@ class complexEvent:
     #  {
     #    eventname : [boolean state, number of times state became true]
     #  }
-    def addEvents(self, events, no_enforce_sequence=False):
+    def addEvents(self, events):# , no_enforce_sequence=False):
     
-        self.no_enforce_sequence = no_enforce_sequence
+        # self.no_enforce_sequence = no_enforce_sequence
         
         # Iterate through each event
         for event in events:
@@ -772,8 +799,39 @@ class complexEvent:
         return within_occurrence_times
 
     
+    def set_untimed(self, event_names, eval_results, time_index):
+        result = False
+        occurrence_times = self.get_occurrence_timed(event_names, eval_results, time_index)
+        
+        # This means all events have occurred
+        if len(occurrence_times.keys()) == len(event_names):
+            result = True
 
-    def sequence_timed(self, event_names, eval_results, change_status, placeholder, time_bound, time_index):
+        return result
+    
+    def sequence_untimed(self, event_names, eval_results, time_index):
+        result = False
+        occurrence_times = self.get_occurrence_timed(event_names, eval_results, time_index)
+        
+        # This means all events have occurred
+        if len(occurrence_times.keys()) == len(event_names):
+            # Now check if all occur in time
+            in_order = True
+            prev_time = 0
+            for ev_name in event_names:
+                if occurrence_times[ev_name] <= prev_time:
+                    in_order = False
+                    break
+                prev_time = occurrence_times[ev_name]
+
+            #  All events occur in order and all events occur
+            if in_order:
+                result = True
+
+        return result
+    
+
+    def sequence_timed(self, event_names, eval_results, placeholder, time_bound, time_index):
         
         result = False
         within_occurrence_times = self.get_occurrence_timed(event_names, eval_results, time_index)
@@ -798,7 +856,7 @@ class complexEvent:
 
         return result
             
-    def set_timed(self, event_names, eval_results, change_status, placeholder, time_bound, time_index):
+    def set_timed(self, event_names, eval_results, placeholder, time_bound, time_index):
     
         result = False
         within_occurrence_times = self.get_occurrence_timed(event_names, eval_results, time_index)
@@ -938,8 +996,12 @@ class complexEvent:
         if type(current_operator) == list:
             if current_operator[0] == "set_timed" or current_operator[0] == "sequence_timed":
                 operator_params = ','.join([str(x) for x in current_operator[1:]])
-                eval_str = "self." + current_operator[0]+"("+"event_names,current_eval_results,change_of_state," \
+                eval_str = "self." + current_operator[0]+"("+"event_names,current_eval_results," \
                     + operator_params + ", time_index)"
+                set_eval_result = eval(eval_str)
+
+            elif current_operator[0] == "set_untimed" or current_operator[0] == "sequence_untimed":
+                eval_str = "self." + current_operator[0]+"("+"event_names,current_eval_results,time_index)"
                 set_eval_result = eval(eval_str)
 
             elif current_operator[0] == "holds":
@@ -1035,8 +1097,8 @@ class complexEvent:
         overall_change_of_state = False
         
         eval_indices_to_track = [self.current_index]
-        if self.no_enforce_sequence:
-            eval_indices_to_track = [x for x in range(0, len(self.executable_functions))]
+        # if self.no_enforce_sequence:
+        #     eval_indices_to_track = [x for x in range(0, len(self.executable_functions))]
 
         current_evaluated_function = self.executable_functions[self.current_index]
 
@@ -1047,7 +1109,7 @@ class complexEvent:
         for i in range(0, len(self.executable_functions)):
 
             # We actually stop in the case of sequences where previous events haven't occurred
-            if not self.no_enforce_sequence and i > self.current_index:
+            if i > self.current_index:
                 continue
             
             # Otherwise, get the current function to execute

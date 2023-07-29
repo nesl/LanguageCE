@@ -1,5 +1,5 @@
 from LanguageCE.ce_builder import sensor_event_stream, watchbox, \
-    complexEvent, Event, OR, AND, GEN_PERMUTE, SEQUENCE_TIMED, SET_TIMED, HOLDS
+    complexEvent, Event, OR, AND, GEN_PERMUTE, SEQUENCE_TIMED, SET_TIMED, HOLDS, SET, SEQUENCE
 import time
 import os
 import cv2
@@ -68,9 +68,9 @@ def build_ce1(class_mappings):
     # ev_holds = HOLDS(vehicles_head_to_bridge, 32)
 
     # And finally we add these events together
-    # ce_structure = ce1.addEvents([ev_holds, GEN_PERMUTE(vehicles_leave, "size")])
-    ce_structure = ce1.addEventSequence([vehicles_head_to_bridge, vehicles_approach_bridge, AND(tanks_present, vehicles_plant_bombs), GEN_PERMUTE(vehicles_leave, "size")])
-    # ce_structure = ce1.addEventSequence([vehicles_approach_bridge, vehicles_plant_bombs, GEN_PERMUTE(vehicles_leave, "size")])
+    # ce_structure = ce1.addEvents([SEQUENCE(vehicles_head_to_bridge, vehicles_approach_bridge), SEQUENCE(tanks_present, vehicles_plant_bombs, GEN_PERMUTE(vehicles_leave, "size"))])
+    ce_structure = ce1.addEvents([vehicles_head_to_bridge, vehicles_approach_bridge, AND(tanks_present, vehicles_plant_bombs), GEN_PERMUTE(vehicles_leave, "size")])
+    # ce_structure = ce1.addEvents([vehicles_approach_bridge, vehicles_plant_bombs, GEN_PERMUTE(vehicles_leave, "size")])
 
     return ce1, ce_structure
 
