@@ -1,6 +1,3 @@
-antlr4-python3-runtime==4.9.3
-label-studio-converter==0.0.48rc0
-label-studio-tools==0.0.1
-labelme==5.1.1
-nltk==3.6.7
-openai==0.27.7
+opencv-python==4.8.0.76
+tqdm==4.66.1
+numpy==1.24.4

@@ -1,52 +1,49 @@
 # Introduction
 
-TBD 
-
-# Language Semantics
-
-TBD: Defining CE and AE 
-
-
-# Language Usage
-
-## How do we express statements?
-
+This repo provides a way to specify complex events which reads in event information from multiple sensor sources.  See the example_data/ folder to format input.  Ideally this repo should be used as part of https://github.com/nesl/DANCER which provides a client that generates this information.  However, we have also provided some examples so this repo can be used standalone.
+See the main function under test_ce.py to see how this can be used.
 
 ### Setting up a Complex Event
 
-First, we have to set up complex events.  The complexEvent class is responsible for executing our symbolic logic.  The initialization takes no parameters.
+First, we have to set up complex events.  The complexEvent class is responsible for executing our symbolic logic.  The initialization takes only one parameter - class_mappings.  Class mappings map a string describing the object into the object label.  For example, {"person": 0,"car": 2,"package": 30}.  The string description is used by our later atomic event syntax to target particular objects.
 ```
-ce_name = complexEvent()
+ce_name = complexEvent(class_mappings)
 ```
 
 ### Adding Watchboxes
 
 Next, we have to set up our spatial detection features, such as watchboxes.  These take the following format:
 ```
-ce_name.addWatchbox("XX = watchbox('YY', positions=[aa,bb,cc,dd], id=ZZ)")
+ce_name.addWatchbox(name='XX', region_id='YY', positions=[aa,bb,cc,dd], classes=['ZZ'], watchbox_id=WBID , class_mappings=class_mappings)")
 ```
-Here, XX is the name of our watchbox which can be referenced in later events.  YY is the camera stream name, although at this time it doesn't do anything.  The positions of aa,bb,cc,dd refer to the top left and bottom right coordinates of the watchbox in the image.  The id of ZZ is an integer number which corresponds to the detected object of interest given by YOLO.  An example of these returned events is shown in complex_events.json:
+Here, XX is the name of our watchbox which can be referenced in later events.  YY is corrsponds to a particular ID of a camera.  The positions of aa,bb,cc,dd refer to the top left (aa,bb) and bottom right (cc,dd) coordinates of the watchbox in the image.  ZZ is an string describing the class of object that this watchbox should monitor for.  There may be multiple strings for classes.  WBID is a unique integer ID assigned to this watchbox - this will later be removed since it serves the same function as name.  class_mappings is the same dictionary object described earlier.
+
+
+### Events which Affect Watchboxes
+
+In this system, we receive data about events which alter the state of watchboxes.  These events originate from distributed sensors, or in our examples, as text files which list out each event.  These events are structured as follows:
 ```
-{"camera_id": 3, "results": [[[0], [true], 1]], "time": 630}
+{'frame_index': FRAME_INDEX, 'tracks': {}, 'vicinal_events': []}
 ```
-In this example, we capture an object of class 0 (which would've been the value of ZZ).
-As you can see, this entry in complex_events.json contains a camera_id which we currently don't use.  In addition, it has a 'results field', which refers to the following:
+FRAME_INDEX is an integer describes the current frame index of, for example, a video.  'tracks' describes a dictionary consisting of { trackID : {'bbox_data': BB_DATA, 'prediction' : PRED_LABEL} }.  trackID is a unique integer assigned to a detected object after a tracking algorithm is applied.  BB_DATA is a list of coordinates within an image where the object is located.  PRED_LABEL is an integer corresponding to the detected object's label.  'vicinal_events' further includes information about the object and how it interacted with a watchbox.
+For example, in example_data/ce1_carla_example/ae_cam1.txt:
 ```
-"results": [[[watchbox_id], [event_occurred], object_track_id]]
+{'frame_index': 161, 'tracks': {3082: {'bbox_data': [743.06, 353.0, 790.74, 418.8], 'prediction': 0}}, 'vicinal_events': [{'camera_id': 1, 'results': [{'track_id': 3082, 'watchboxes': [0], 'enters': [True], 'directions': ['middle'], 'class': 0}], 'time': 161}]}
 ```
-This means that we only get results when an object enters a watchbox or exits the watchbox.  Moreover, the 'watchbox_id' corresponds to the 'id=ZZ' statement we used previously in addWatchbox.
+This line describes the detected objects and vicinal events at frame index 161.  It detects a unique object, which is assigned the trackID of 3082 with class 0 (pedestrian if we use the previously mentioned class_mapping).  The vicinal event shows that this object showed up in camera with ID 1, and it entered watchbox ID of 0 from the middle of the watchbox.
+
 
 ### Adding Atomic Events
 
 To add an event we can simply use the following syntax:
 ```
-event_name = Event("WATCHBOX_NAME.composition(at=EVENT_INDEX, model=VEHICLE_CLASS).ATTRIBUTE==CC")
+event_name = Event("WATCHBOX_NAME.composition(at=EVENT_INDEX, model=OBJECT_CLASS).ATTRIBUTE==CC")
 ```
 where WATCHBOX_NAME refers to the name of our watchbox declared previously (e.g. XX).  The '.composition()' takes several parameters:
 
 at=EVENT_INDEX, which refers to the current and previous events occurring in this watchbox.  Importantly, the order of time is reversed: at=0 refers to the current time, while at=1 refers to the previous event, and at=2 refers to the previous to previous event, etc.
 
-model=VEHICLE_CLASS refers to the name of the vehicle class we want the watchbox to filter for.  In the current implementation it is not used internally yet.
+model=OBJECT_CLASS refers to the name of the object class we want the watchbox to filter for (which should correspond to the string description used in our class_mappings).  In the current implementation it is not used internally yet.
 
 ATTRIBUTE is really just a class attribute which is returned from the composition() function.  For more information, see class watchboxResult in ce_builder.py.
 This attribute can have some arithmetic or logical operators, the same which Python uses.  **In fact, every statement inside Event() is really just a string which is executed as a Python command.**
@@ -104,7 +101,7 @@ where two vehicles arrive at the same time at the previous event, then one vehic
 
 This is why we have the GEN_PERMUTE() function - it generates all combinations for an attribute over time so all we have to do is express:
 ```
-ev1 = Event("bridgewatchbox1.composition(at=0, model='rec_vehicle').size==3") and
+bridgewatchbox1.composition(at=0, model='rec_vehicle').size==3 and
 bridgewatchbox1.composition(at=1, model='rec_vehicle').size==0
 ```
 and GEN_PERMUTE() will handle generating all the necessary statements.
@@ -114,10 +111,6 @@ and GEN_PERMUTE() will handle generating all the necessary statements.
 So we can create more complex event sequences using the previously mentioned operators and atomic events:
 ```
 ev_name.addEventSequence([ OR(event1, event2), GEN_PERMUTE(event3, "size"), AND(event4, event5)])
-```
-
-```
-ce1.addEventSequence([ OR(event1, event2), WITHIN(event3, event4, 300), AND(event5, event6)])
 ```
 So let's go through this example, as if our program was executing it:
 - First, we check if event1 or event2 occurs.  If either occurs, we can move onto the next event, which is GEN_PERMUTE().
@@ -132,28 +125,9 @@ First, check the 'requirements.txt'.  Use it to install the necessary packages.
 
 ### Execution
 
-#### Running the ChatGPT examples:
-
-First, please change the value of the variable "openai.api_key" in chatgpt_frontend.py to your API key.
+You can try evaluating some complex events by running:
 ```
-python chatgpt_frontend.py
+python test_ce.py
 ```
-
-You have several ways of communicating with ChatGPT via this file:
-- Selecting a predefined message based on a file under chatgpt_examples
-    The selected file is from the variable "file_of_interest", and you can use a number to select one of the json entries.  0 is the preamble, and 1+ is usually a query based on the preamble (e.g. create an event).  An example interaction is shown below.
-```
-Select a message option (0-N), or type it here:0
-ChatGPT: Yes, I am ready. How can I help you?
-Select a message option (0-N), or type it here:2
-```
-- Another way of communicating is just to type your query in the input.
-```
-Select a message option (0-N), or type it here: what is the tallest building in the world?
-ChatGPT: As of 2021, the tallest building in the world is the Burj Khalifa, located in Dubai, United Arab Emirates. It stands at a height of 828 meters (2,716 feet) with 163 floors.
-```
-
-#### Todos:
-
-TBD - need to create a sample AE generator.
+This file includes a main function which demonstrates how one can evaluate a complex event given several files listing vicinal events.
 
